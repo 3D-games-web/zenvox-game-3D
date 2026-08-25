@@ -1,5 +1,5 @@
 import { DriveGame } from "@/src/games/drive/DriveGame";
 
-export default function HomePage() {
+export default function ZeroHourPage() {
   return <DriveGame />;
 }

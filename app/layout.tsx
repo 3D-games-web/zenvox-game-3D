@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Mono, Space_Grotesk } from "next/font/google";
+import { QueryProvider } from "@/src/lib/query-provider";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -14,8 +15,8 @@ const dmMono = DM_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Orbit / 01 — Find your signal",
-  description: "An interactive deep space study.",
+  title: "ZENVOX: DRIVE",
+  description: "A futuristic 3D driving game by ZENVOX.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -24,7 +25,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${spaceGrotesk.variable} ${dmMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col"><QueryProvider>{children}</QueryProvider></body>
     </html>
   );
 }
