@@ -42,3 +42,15 @@ button { font: inherit; }
 @media (max-width: 700px) { .drive-header { height: 65px; padding: 0 6vw; }.drive-mode { display: none; }.drive-stage { height: calc(100svh - 42px); min-height: 700px; }.drive-canvas { inset: 65px 0 0; }.drive-stage:after { inset: 65px 0 0; background: linear-gradient(0deg, #111517cc 0, transparent 35%, #11151733 100%); }.drive-hud { top: 88px; }.drive-left { left: 6vw; }.drive-score { left: 50%; transform: translateX(-50%); text-align: center; }.drive-nitro { top: 153px; left: 6vw; }.drive-right { right: 6vw; }.drive-hud strong { font-size: 23px; }.drive-score strong { font-size: 22px; }.drive-right strong { font-size: 29px; }.speed-line, .nitro-line { width: 110px; }.drive-overlay { top: 43%; left: 7vw; width: calc(100% - 14vw); }.drive-overlay h1 { font-size: clamp(4.1rem, 18vw, 6.5rem); }.drive-overlay > p:not(.drive-kicker) { font-size: 13px; max-width: 260px; }.drive-reticle { top: 56%; }.cockpit-strip { width: 260px; height: 61px; padding: 10px 22px 10px; font-size: 7px; }.cockpit-wheel { width: 44px; height: 44px; border-width: 6px; margin-bottom: -12px; }.cockpit-strip b { font-size: 14px; }.control-guide { bottom: 83px; width: 92%; gap: 6px; justify-content: center; flex-wrap: wrap; white-space: normal; font-size: 7px; }.control-guide b { min-width: 18px; height: 17px; font-size: 8px; }.drive-touch { display: flex; }.drive-footer { padding: 14px 6vw; }.drive-footer span:nth-child(2), .drive-footer span:nth-child(3) { display: none; }.drive-footer span:last-child { font-size: 7px; } }
 .drive-overlay h1 { font-size: clamp(3.8rem, 6.2vw, 6.5rem); }
 @media (max-width: 700px) { .drive-overlay h1 { font-size: clamp(4.1rem, 18vw, 6.5rem); } }
+.cockpit-strip { display: none; }
+@media (min-width: 701px) and (max-width: 1100px) {
+	.drive-header { padding: 0 3vw; }
+	.drive-hud { top: 96px; }
+	.drive-left { left: 3vw; }
+	.drive-score { left: 24vw; }
+	.drive-nitro { left: 39vw; }
+	.drive-right { right: 3vw; }
+	.drive-overlay { left: 6vw; width: 320px; }
+	.drive-overlay h1 { font-size: clamp(3.5rem, 7vw, 5.5rem); }
+	.control-guide { gap: 9px; font-size: 8px; }
+}
