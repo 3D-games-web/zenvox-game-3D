@@ -55,4 +55,4 @@ npm start
 
 ## Notes
 
-The game is intentionally self-contained: it uses procedural Three.js geometry and does not require external image or model assets. The freeway is responsive and caps the renderer pixel ratio to keep the experience smooth on high-density screens.
+The freeway and city use procedural geometry. The player car loads a real Ferrari GLTF model at runtime, with a procedural fallback for offline or blocked-network runs. The renderer caps pixel ratio to keep the experience smooth on high-density screens.

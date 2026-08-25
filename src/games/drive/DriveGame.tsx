@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { gsap } from "gsap";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 type DriveStatus = "ready" | "playing" | "paused" | "crashed";
 
@@ -13,9 +14,11 @@ export function DriveGame() {
   const [speed, setSpeed] = useState(0);
   const [distance, setDistance] = useState(0);
   const [points, setPoints] = useState(0);
+  const [nitro, setNitro] = useState(100);
   const [best, setBest] = useState(0);
   const gameRef = useRef<HTMLDivElement>(null);
   const statusRef = useRef(status);
+  const nitroRef = useRef(100);
   const callbacksRef = useRef({ setSpeed, setDistance, setStatus });
 
   useEffect(() => { statusRef.current = status; }, [status]);
@@ -32,7 +35,7 @@ export function DriveGame() {
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     mount.appendChild(renderer.domElement);
 
     scene.add(new THREE.HemisphereLight(0xd9f3ff, 0x59605c, 2.1));
@@ -66,6 +69,29 @@ export function DriveGame() {
 
     const scenery: THREE.Object3D[] = [];
     const pedestrians: THREE.Group[] = [];
+    const createFacadeTexture = (seed: number) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 256;
+      canvas.height = 512;
+      const context = canvas.getContext("2d");
+      if (!context) return undefined;
+      context.fillStyle = ["#aaa59b", "#858d8d", "#b9ada0", "#777f83"][seed % 4];
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = "#d5cec0";
+      context.fillRect(0, 0, 10, canvas.height);
+      for (let row = 0; row < 14; row += 1) {
+        for (let column = 0; column < 5; column += 1) {
+          const lit = (row * 7 + column * 11 + seed) % 5 !== 0;
+          context.fillStyle = lit ? (row % 3 ? "#9ad9e7" : "#f1d995") : "#263d43";
+          context.fillRect(20 + column * 44, 18 + row * 35, 22, 17);
+        }
+      }
+      context.fillStyle = "#565d5b55";
+      for (let stripe = 0; stripe < 10; stripe += 1) context.fillRect(stripe * 29, 0, 2, canvas.height);
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      return texture;
+    };
     [-1, 1].forEach((side) => {
       const sidewalk = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 260), new THREE.MeshStandardMaterial({ color: 0x9ba29b, roughness: 0.92 }));
       sidewalk.rotation.x = -Math.PI / 2;
@@ -77,7 +103,8 @@ export function DriveGame() {
       const height = 3 + Math.random() * 12;
       const depth = 5 + Math.random() * 5;
       const buildingGroup = new THREE.Group();
-      const building = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), new THREE.MeshStandardMaterial({ color: [0xb4aaa0, 0x978f86, 0x777c7a, 0xc1b7a8][index % 4], roughness: 0.88 }));
+      const facadeTexture = createFacadeTexture(index);
+      const building = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), new THREE.MeshStandardMaterial({ color: 0xffffff, map: facadeTexture, roughness: 0.88 }));
       building.position.y = height / 2;
       building.castShadow = true;
       buildingGroup.add(building);
@@ -113,6 +140,11 @@ export function DriveGame() {
       const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 6), skin);
       head.position.y = 1.12;
       person.add(head);
+      [-0.19, 0.19].forEach((x) => {
+        const arm = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.38, 0.08), clothes);
+        arm.position.set(x, 0.76, 0);
+        person.add(arm);
+      });
       [-0.07, 0.07].forEach((x) => {
         const leg = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.42, 0.08), clothes);
         leg.position.set(x, 0.3, 0);
@@ -166,8 +198,48 @@ export function DriveGame() {
     };
 
     const player = createCar(0xd9382e, 0, 5.6);
-    const traffic = [createCar(0x1d555f, -2.6, -28), createCar(0xe2b03c, 2.5, -49), createCar(0x464b9d, -2.5, -75), createCar(0xf2f2e7, 2.55, -105), createCar(0x2c834a, -2.5, -138)];
+    const traffic = [
+      createCar(0x1d555f, -2.6, -28), createCar(0xe2b03c, 2.5, -49), createCar(0x464b9d, -2.5, -75),
+      createCar(0xf2f2e7, 2.55, -105), createCar(0x2c834a, -2.5, -138), createCar(0xc54b42, 2.5, -164),
+      createCar(0x8d5cb8, -2.5, -190), createCar(0xd7d0b7, 2.5, -218),
+    ];
     traffic.forEach((car, index) => { car.userData.baseSpeed = 0.58 + index * 0.08; });
+
+    const modelLoader = new GLTFLoader();
+    modelLoader.load(
+      "https://threejs.org/examples/models/gltf/ferrari.glb",
+      (gltf) => {
+        const createRealCar = (scale: number, tint?: number) => {
+          const vehicle = gltf.scene.clone(true);
+          vehicle.scale.setScalar(scale);
+          vehicle.rotation.y = Math.PI;
+          vehicle.position.y = 0.03;
+          vehicle.traverse((object) => {
+            if (object instanceof THREE.Mesh) {
+              object.castShadow = true;
+              object.receiveShadow = true;
+              if (tint && object.material instanceof THREE.MeshStandardMaterial) {
+                object.material = object.material.clone();
+                object.material.color.lerp(new THREE.Color(tint), 0.35);
+              }
+            }
+          });
+          return vehicle;
+        };
+        const realPlayer = createRealCar(0.42);
+        player.clear();
+        player.add(realPlayer);
+        traffic.forEach((car, index) => {
+          car.clear();
+          car.add(createRealCar(0.3 + (index % 3) * 0.018, [0x1d555f, 0xe2b03c, 0x464b9d, 0xf2f2e7, 0x2c834a, 0xc54b42, 0x8d5cb8, 0xd7d0b7][index]));
+        });
+        gsap.fromTo(realPlayer.scale, { x: 0.2, y: 0.2, z: 0.2 }, { x: 0.42, y: 0.42, z: 0.42, duration: 0.8, ease: "back.out(1.7)" });
+      },
+      undefined,
+      () => {
+        player.userData.modelFallback = true;
+      },
+    );
 
     const checkpoints: THREE.Mesh[] = [];
     [-2.5, 2.5, 0, -2.5, 2.5].forEach((x, index) => {
@@ -192,19 +264,22 @@ export function DriveGame() {
     window.addEventListener("resize", resize);
     gsap.fromTo(player.position, { y: 2 }, { y: 0, duration: 1.1, ease: "bounce.out" });
 
-    const clock = new THREE.Clock();
+    let previousTime = performance.now();
     let frameId = 0;
     let totalDistance = 0;
     let currentSpeed = 0;
     let crashed = false;
     const animate = () => {
-      const delta = Math.min(clock.getDelta(), 0.05);
+      const now = performance.now();
+      const delta = Math.min((now - previousTime) / 1000, 0.05);
+      previousTime = now;
       const active = statusRef.current === "playing";
       const steer = Number(keys.has("d") || keys.has("arrowright")) - Number(keys.has("a") || keys.has("arrowleft"));
       const throttle = Number(keys.has("w") || keys.has("arrowup"));
       const brake = Number(keys.has("s") || keys.has("arrowdown"));
+      const boosting = keys.has(" ") && nitroRef.current > 0;
       if (active && !crashed) {
-        const targetSpeed = throttle ? 1 : brake ? 0.12 : 0.54;
+        const targetSpeed = boosting ? 1.38 : throttle ? 1 : brake ? 0.12 : 0.54;
         currentSpeed = THREE.MathUtils.lerp(currentSpeed, targetSpeed, delta * 2.8);
         player.position.x = THREE.MathUtils.clamp(player.position.x + steer * delta * 4.5, -5.2, 5.2);
         player.rotation.z = THREE.MathUtils.lerp(player.rotation.z, -steer * 0.12, delta * 8);
@@ -212,14 +287,16 @@ export function DriveGame() {
         callbacksRef.current.setSpeed(Math.round(currentSpeed * 150));
         callbacksRef.current.setDistance(totalDistance);
         setPoints(Math.floor(totalDistance * 10));
+        nitroRef.current = boosting ? Math.max(0, nitroRef.current - delta * 18) : Math.min(100, nitroRef.current + delta * 3.5);
+        setNitro(Math.round(nitroRef.current));
         laneMarkers.forEach((marker) => { marker.position.z += currentSpeed * delta * 34; if (marker.position.z > 13) marker.position.z -= 256; });
         scenery.forEach((object) => { object.position.z += currentSpeed * delta * 34; if (object.position.z > 15) object.position.z -= 270; });
         pedestrians.forEach((person) => {
           person.userData.walkPhase += delta * 7;
           const walkAmount = Math.sin(person.userData.walkPhase) * 0.16;
           person.position.x = person.userData.walkSide * (7.7 + Math.sin(person.userData.walkPhase * 0.35) * 0.15);
-          person.children[2].rotation.x = walkAmount;
-          person.children[3].rotation.x = -walkAmount;
+          person.children[4].rotation.x = walkAmount;
+          person.children[5].rotation.x = -walkAmount;
         });
         traffic.forEach((car) => { car.position.z += (currentSpeed - car.userData.baseSpeed) * delta * 19; if (car.position.z > 13) car.position.z = -140 - Math.random() * 25; });
         checkpoints.forEach((checkpoint) => {
@@ -245,6 +322,6 @@ export function DriveGame() {
   }, []);
 
   const start = () => setStatus("playing");
-  const reset = () => { setBest((value) => Math.max(value, Math.round(distance))); setSpeed(0); setDistance(0); setPoints(0); setStatus("ready"); window.location.reload(); };
-  return <main className="drive-shell"><header className="drive-header"><a className="drive-brand" href="#drive"><span className="brand-mark" />ZENVOX <b>/</b> DRIVE</a><span className="drive-mode">Freeway run <i /> Solo session</span><button className="drive-pause" onClick={() => setStatus(status === "playing" ? "paused" : "playing")} aria-label="Pause or resume">{status === "playing" ? "Ⅱ" : "▶"}</button></header><section className="drive-stage" id="drive"><div className="drive-canvas" ref={gameRef} aria-label="3D driving game" /><div className="drive-hud drive-left"><span>Distance</span><strong>{formatDistance(distance)}</strong><small>Best {formatDistance(best)}</small></div><div className="drive-hud drive-score"><span>Points</span><strong>{points.toLocaleString()}</strong></div><div className="drive-hud drive-right"><span>Current speed</span><strong>{speed}<small> KM/H</small></strong><div className="speed-line"><i style={{ width: `${Math.min(100, (speed / 150) * 100)}%` }} /></div></div><div className="drive-reticle">+</div>{status === "ready" && <div className="drive-overlay"><p className="drive-kicker">Route 01 / City limits</p><h1>Own the<br /><em>open road.</em></h1><p>Thread through traffic, hold your line, and make the city blur.</p><button className="drive-start" onClick={start}>Start drive <b>↗</b></button><small>WASD / ARROWS TO STEER · W TO ACCELERATE</small></div>}{status === "paused" && <div className="drive-overlay compact-drive"><p className="drive-kicker">Transmission held</p><h2>Paused.</h2><button className="drive-start" onClick={start}>Resume <b>▶</b></button></div>}{status === "crashed" && <div className="drive-overlay compact-drive"><p className="drive-kicker">Impact detected</p><h2>Run ended.</h2><p>You travelled {formatDistance(distance)} and scored {points.toLocaleString()} points.</p><button className="drive-start" onClick={reset}>Drive again <b>↗</b></button></div>}<div className="drive-touch"><button onPointerDown={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft" }))} onPointerUp={() => window.dispatchEvent(new KeyboardEvent("keyup", { key: "ArrowLeft" }))}>←</button><button onPointerDown={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp" }))} onPointerUp={() => window.dispatchEvent(new KeyboardEvent("keyup", { key: "ArrowUp" }))}>↑</button><button onPointerDown={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight" }))} onPointerUp={() => window.dispatchEvent(new KeyboardEvent("keyup", { key: "ArrowRight" }))}>→</button></div></section><footer className="drive-footer"><span>Traffic <b>ACTIVE</b></span><span>Weather <b>Clear / 24°</b></span><span>Controls <b>Keyboard + touch</b></span><span>© 2026 ZENVOX MOTORSPORT</span></footer></main>;
+  const reset = () => { setBest((value) => Math.max(value, Math.round(distance))); setSpeed(0); setDistance(0); setPoints(0); nitroRef.current = 100; setNitro(100); setStatus("ready"); window.location.reload(); };
+  return <main className="drive-shell"><header className="drive-header"><a className="drive-brand" href="#drive"><span className="brand-mark" />ZENVOX <b>/</b> DRIVE</a><span className="drive-mode">Freeway run <i /> Solo session</span><button className="drive-pause" onClick={() => setStatus(status === "playing" ? "paused" : "playing")} aria-label="Pause or resume">{status === "playing" ? "Ⅱ" : "▶"}</button></header><section className="drive-stage" id="drive"><div className="drive-canvas" ref={gameRef} aria-label="3D driving game" /><div className="drive-hud drive-left"><span>Distance</span><strong>{formatDistance(distance)}</strong><small>Best {formatDistance(best)}</small></div><div className="drive-hud drive-score"><span>Points</span><strong>{points.toLocaleString()}</strong></div><div className="drive-hud drive-nitro"><span>Nitro <b>{Math.round(nitro)}%</b></span><div className="nitro-line"><i style={{ width: `${nitro}%` }} /></div></div><div className="drive-hud drive-right"><span>Current speed</span><strong>{speed}<small> KM/H</small></strong><div className="speed-line"><i style={{ width: `${Math.min(100, (speed / 150) * 100)}%` }} /></div></div><div className="drive-reticle">+</div>{status === "ready" && <div className="drive-overlay"><p className="drive-kicker">Route 01 / City limits</p><h1>Own the<br /><em>open road.</em></h1><p>Thread through traffic, hold your line, and make the city blur.</p><button className="drive-start" onClick={start}>Start drive <b>↗</b></button></div>}{status === "paused" && <div className="drive-overlay compact-drive"><p className="drive-kicker">Transmission held</p><h2>Paused.</h2><button className="drive-start" onClick={start}>Resume <b>▶</b></button></div>}{status === "crashed" && <div className="drive-overlay compact-drive"><p className="drive-kicker">Impact detected</p><h2>Run ended.</h2><p>You travelled {formatDistance(distance)} and scored {points.toLocaleString()} points.</p><button className="drive-start" onClick={reset}>Drive again <b>↗</b></button></div>}<div className="control-guide" aria-label="Game controls"><span><b>W</b> / <b>↑</b> Accelerate</span><span><b>S</b> / <b>↓</b> Brake</span><span><b>A</b> / <b>←</b> Steer left</span><span><b>D</b> / <b>→</b> Steer right</span><span><b>SPACE</b> Nitro boost</span></div><div className="drive-touch"><button onPointerDown={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft" }))} onPointerUp={() => window.dispatchEvent(new KeyboardEvent("keyup", { key: "ArrowLeft" }))}>←</button><button onPointerDown={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp" }))} onPointerUp={() => window.dispatchEvent(new KeyboardEvent("keyup", { key: "ArrowUp" }))}>↑</button><button onPointerDown={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight" }))} onPointerUp={() => window.dispatchEvent(new KeyboardEvent("keyup", { key: "ArrowRight" }))}>→</button></div></section><footer className="drive-footer"><span>Traffic <b>ACTIVE</b></span><span>Weather <b>Clear / 24°</b></span><span>Controls <b>Keyboard + touch</b></span><span>© 2026 ZENVOX MOTORSPORT</span></footer></main>;
 }

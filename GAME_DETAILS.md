@@ -56,7 +56,7 @@ The game has four states:
 
 ## 3D World
 
-The environment is created procedurally with Three.js geometry so the game works without external model downloads.
+The road, city, lamps, pedestrians, and traffic are created procedurally with Three.js geometry. The player car upgrades to a real Ferrari GLTF model loaded from the Three.js example asset CDN when the asset is available. A procedural car remains as a fallback so the game never becomes a blank screen if the network asset cannot load.
 
 ### Road
 
@@ -84,10 +84,13 @@ The environment is created procedurally with Three.js geometry so the game works
 
 ### Vehicles
 
-- The player drives a red sports car.
-- Traffic cars use multiple colors and positions.
-- Each traffic car has a body, cabin, wheels, and headlights.
-- Traffic moves at different speeds to create overtaking and collision moments.
+- The player drives a red Ferrari GLTF sports-car model when the model asset loads.
+- The game falls back to a procedural sports car if the GLTF request fails.
+- The freeway contains eight traffic vehicles distributed across multiple lanes and distances.
+- Traffic vehicles use cloned Ferrari GLTF models when the shared model asset loads.
+- Traffic cars use varied paint colors and slight scale differences so the road does not feel duplicated.
+- The procedural fallback traffic cars still have bodies, cabins, wheels, and headlights.
+- Traffic moves at different speeds and recycles farther down the road to create overtaking and collision moments.
 
 ## Technical Architecture
 
