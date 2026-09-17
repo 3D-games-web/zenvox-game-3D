@@ -54,3 +54,45 @@ button { font: inherit; }
 	.drive-overlay h1 { font-size: clamp(3.5rem, 7vw, 5.5rem); }
 	.control-guide { gap: 9px; font-size: 8px; }
 }
+
+/* ================= Drive UI — production polish pass ================= */
+.drive-shell { background: radial-gradient(circle at 74% 16%, #1d2527 0, #131718 52%, #0a0c0d 100%); }
+.drive-header { background: linear-gradient(180deg, #0c1011f5 0, #0c101166 72%, transparent); border-bottom: 0; -webkit-backdrop-filter: blur(9px); backdrop-filter: blur(9px); letter-spacing: .12em; }
+.drive-brand { letter-spacing: .16em; }
+.drive-brand .brand-mark { box-shadow: 0 0 0 3px #f2644933, 0 0 16px #f2644977; }
+.drive-mode { padding: 6px 13px; border: 1px solid #d7e2d71f; border-radius: 999px; color: #a9bbb1; }
+.drive-pause { width: 40px; height: 40px; border: 1px solid #d7e2d733; background: #0d111277; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); transition: border-color .2s, color .2s, transform .2s; }
+.drive-pause:hover { transform: scale(1.06); }
+
+.drive-hud { gap: 3px; padding: 13px 16px; border: 1px solid #d7e2d71c; border-radius: 13px; background: linear-gradient(158deg, #0e1213cc, #0a0d0eab); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 12px 36px #00000055, inset 0 1px 0 #ffffff0d; }
+.drive-hud:before { content: ""; position: absolute; top: 14px; left: 0; width: 2px; height: 15px; border-radius: 0 2px 2px 0; background: var(--mint); }
+.drive-hud span { color: #93a79d; letter-spacing: .16em; font-size: 9px; }
+.drive-hud strong { letter-spacing: -.01em; }
+.drive-hud small { color: #7f938a; }
+.drive-score:before { background: var(--coral); }
+.drive-nitro:before { background: var(--yellow); }
+.drive-right:before { left: auto; right: 0; border-radius: 2px 0 0 2px; background: var(--yellow); }
+.drive-right strong { text-shadow: 0 0 24px #f4d35e40; }
+.speed-line, .nitro-line { height: 4px; border-radius: 999px; background: #ffffff14; overflow: hidden; }
+.speed-line i, .nitro-line i { border-radius: 999px; box-shadow: 0 0 10px currentColor; }
+.speed-line i { background: linear-gradient(90deg, var(--coral), var(--yellow)); }
+
+.drive-overlay { padding: 36px 34px 38px; border: 1px solid #d7e2d71a; border-radius: 20px; background: linear-gradient(155deg, #0d1213ea, #090c0dbe); -webkit-backdrop-filter: blur(15px); backdrop-filter: blur(15px); box-shadow: 0 32px 84px #00000080; }
+.drive-overlay:before { top: 36px; left: 34px; width: 40px; }
+.drive-overlay > p:not(.drive-kicker) { color: #c7d4cb; }
+.drive-start { border-radius: 9px; transition: background .2s, color .2s, box-shadow .2s, transform .2s; }
+.drive-start:hover { transform: translateY(-2px); box-shadow: 0 14px 34px #e7eee533; }
+
+.drive-reticle { color: #eef4ed7a; }
+.drive-footer { background: linear-gradient(180deg, transparent, #0a0c0d 55%); border-top: 1px solid #d7e2d714; }
+.control-guide { padding: 8px 16px; border: 1px solid #d7e2d715; border-radius: 999px; background: #0c1011aa; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+
+/* ---- open-world city extras ---- */
+.drive-minimap { position: absolute; z-index: 4; right: 4vw; bottom: 96px; width: 176px; height: 176px; border: 1px solid #d7e2d733; border-radius: 12px; background: #0c1112; box-shadow: 0 14px 40px #00000066; }
+.drive-badge { position: absolute; z-index: 4; top: 100px; left: 4vw; display: inline-flex; align-items: center; gap: 8px; padding: 9px 15px; border: 1px solid #d7e2d726; border-radius: 999px; background: #0e1213cc; -webkit-backdrop-filter: blur(9px); backdrop-filter: blur(9px); color: var(--paper); font: 11px var(--font-geist-mono), monospace; letter-spacing: .06em; text-transform: uppercase; }
+.drive-prompt { position: absolute; z-index: 4; left: 50%; bottom: 92px; transform: translateX(-50%); padding: 10px 20px; border: 1px solid var(--coral); border-radius: 999px; background: #0c1011dd; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: var(--paper); font: 11px var(--font-geist-mono), monospace; letter-spacing: .08em; text-transform: uppercase; animation: enter .3s both; }
+@media (max-width: 700px) {
+	.drive-minimap { width: 116px; height: 116px; right: 5vw; bottom: 150px; }
+	.drive-badge { top: 84px; left: 5vw; padding: 7px 12px; font-size: 9px; }
+	.drive-prompt { bottom: 210px; font-size: 9px; padding: 8px 14px; }
+}
