@@ -199,8 +199,9 @@ export function DriveGame() {
     // ---------- Box humanoid (bike rider, posed) ----------
     const buildRider = () => {
       const p = new THREE.Group();
-      const shirt = new THREE.MeshStandardMaterial({ color: 0x35507a, roughness: 0.85 });
-      const pants = new THREE.MeshStandardMaterial({ color: 0x2b2f36, roughness: 0.88 });
+      // match the soldier's military tan look so it reads as the same character
+      const shirt = new THREE.MeshStandardMaterial({ color: 0x8a7f5c, roughness: 0.85 });
+      const pants = new THREE.MeshStandardMaterial({ color: 0x5c5340, roughness: 0.88 });
       const hips = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.18, 0.17), pants); hips.position.y = 0.54; p.add(hips);
       const torso = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.42, 0.19), shirt); torso.position.set(0, 0.82, 0); torso.rotation.x = -0.5; p.add(torso);
       const head = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.2, 0.19), new THREE.MeshStandardMaterial({ color: 0x2b2b2b, roughness: 0.6 })); head.position.set(0, 1.08, -0.14); p.add(head); // helmet
@@ -255,7 +256,11 @@ export function DriveGame() {
     let playerMixer: THREE.AnimationMixer | null = null;
     let idleAction: THREE.AnimationAction | null = null;
     let walkAction: THREE.AnimationAction | null = null;
+    let runAction: THREE.AnimationAction | null = null;
     let activeAction: THREE.AnimationAction | null = null;
+    let footVelY = 0;      // vertical velocity for jumping
+    let grounded = true;
+    let jumpReq = false;
 
     const setupCharacter = (gltf: GLTF, target: THREE.Group, targetHeight: number, tint?: number) => {
       const model = cloneSkeleton(gltf.scene) as THREE.Group;
@@ -281,10 +286,11 @@ export function DriveGame() {
       const clips = gltf.animations;
       const walkClip = THREE.AnimationClip.findByName(clips, "Walk");
       const idleClip = THREE.AnimationClip.findByName(clips, "Idle");
-      if (!walkClip || !idleClip) return;
+      const runClip = THREE.AnimationClip.findByName(clips, "Run");
+      if (!walkClip || !idleClip || !runClip) return;
       // player avatar
       playerMixer = setupCharacter(gltf, avatarRoot, 1.8);
-      idleAction = playerMixer.clipAction(idleClip); walkAction = playerMixer.clipAction(walkClip);
+      idleAction = playerMixer.clipAction(idleClip); walkAction = playerMixer.clipAction(walkClip); runAction = playerMixer.clipAction(runClip);
       idleAction.play(); activeAction = idleAction;
       mixers.push(playerMixer);
       // pedestrians — varied heights (male/female mix) and outfit colours
@@ -349,6 +355,7 @@ export function DriveGame() {
     const onKeyDown = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase();
       if (k === "f" && !keys.has("f")) enterExit();
+      if (k === " " && !keys.has(" ") && modeRef.current === "foot") jumpReq = true; // jump on foot
       keys.add(k);
       if (["arrowleft", "arrowright", "arrowup", "arrowdown", " ", "w", "a", "s", "d"].includes(k)) e.preventDefault();
     };
@@ -440,25 +447,35 @@ export function DriveGame() {
         callbacksRef.current.setSpeed(Math.round(Math.abs(carSpeed) * 3.2));
       } else carSpeed *= 0.9;
 
-      // ---- on foot (camera-relative movement: W = into screen, A/D = left/right) ----
+      // ---- on foot (camera-relative movement: W = into screen, A/D = left/right, Shift = run, Space = jump) ----
       if (active && m === "foot") {
         const fwdIn = (up ? 1 : 0) - (down ? 1 : 0);
         const rgtIn = (right ? 1 : 0) - (left ? 1 : 0);
         const isMoving = fwdIn !== 0 || rgtIn !== 0;
+        const sprint = keys.has("shift");
         if (isMoving) {
           const psi = camTheta;
           let mx = -Math.sin(psi) * fwdIn + Math.cos(psi) * rgtIn;
           let mz = -Math.cos(psi) * fwdIn - Math.sin(psi) * rgtIn;
           const len = Math.hypot(mx, mz) || 1; mx /= len; mz /= len;
-          avatarRoot.position.x += mx * 4.6 * delta;
-          avatarRoot.position.z += mz * 4.6 * delta;
+          const spd = sprint ? 9 : 4.6;
+          avatarRoot.position.x += mx * spd * delta;
+          avatarRoot.position.z += mz * spd * delta;
           resolveCollision(avatarRoot.position, 0.5);
           footHeading = lerpAngle(footHeading, Math.atan2(-mx, -mz), Math.min(1, delta * 12));
           avatarRoot.rotation.y = footHeading;
         }
-        const want = isMoving ? walkAction : idleAction;
-        if (want && want !== activeAction && activeAction) { activeAction.fadeOut(0.2); want.reset().fadeIn(0.2).play(); activeAction = want; }
-        callbacksRef.current.setSpeed(0);
+        // jump physics
+        if (jumpReq && grounded) { footVelY = 6.4; grounded = false; }
+        jumpReq = false;
+        if (!grounded) {
+          footVelY -= 20 * delta;
+          avatarRoot.position.y += footVelY * delta;
+          if (avatarRoot.position.y <= 0) { avatarRoot.position.y = 0; footVelY = 0; grounded = true; }
+        }
+        const want = !grounded ? (activeAction ?? idleAction) : isMoving ? (sprint ? runAction : walkAction) : idleAction;
+        if (want && want !== activeAction && activeAction) { activeAction.fadeOut(0.18); want.reset().fadeIn(0.18).play(); activeAction = want; }
+        callbacksRef.current.setSpeed(sprint && isMoving ? 8 : 0);
       }
 
       if (active) {
